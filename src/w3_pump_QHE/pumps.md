@@ -72,8 +72,8 @@ def modulated_wire(L=50, dL=10):
     lead[lat(0)] = lead_onsite
     lead[lat.neighbors()] = hopping
 
-    syst.attach_lead(lead)
-    syst.attach_lead(lead.reversed())
+    syst.attach_lead(lead, add_cells=dL)
+    syst.attach_lead(lead.reversed(), add_cells=dL)
 
     return syst
 
@@ -132,7 +132,7 @@ In the image below (source: Chambers's Encyclopedia, 1875, via Wikipedia) you se
 
 The changes to the system are clearly periodic, and the pump works the same no matter how slowly we use it (that is, change the parameters), so it is an adiabatic tool.
 
-What about a quantum analog of this pump? Turns out it is just as simple as you would think.
+What about a quantum analog of this pump? 
 
 Let's take a one-dimensional region, coupled to two electrodes on both sides, and apply a strong sine-shaped confining potential in this region. As we move the confining potential, we drag the electrons captured in it.
 
@@ -169,7 +169,7 @@ plt.ylim(-2, 2)
 
 y = [i if i <= 0 else 0 for i in y]
 plt.fill_between(x, y, 0, color='r', where=np.array(y) <
-                 0.0, alpha=0.5, edgecolor='k', lw='1.5')
+                 0.0, alpha=0.5, edgecolor='k', lw=1.5)
 
 plt.arrow(2.0, 1.25, 5, 0, head_width=0.15, head_length=1.0, fc='k', ec='k')
 
@@ -188,9 +188,9 @@ As we discussed, if we change $t$ very slowly, the solution will not depend on h
 
 When $A \gg 1 /m \lambda^2$ the confining potential is strong, and additionally if the chemical potential $\mu \ll A$, the states bound in the separate minima of the potential have very small overlap.
 
-The potential near the bottom of each minimum is approximately quadratic, so the Hamiltonian is that of a simple Harmonic oscillator. This gives us discrete levels of the electrons with energies $E_n = (n + \tfrac{1}{2})\omega_c$, with $\omega_c = \sqrt{A/m\lambda^2}$ the oscillator frequency.
+The potential near the bottom of each minimum is approximately quadratic, so the Hamiltonian is that of a simple Harmonic oscillator. This gives us discrete levels of the electrons with energies $E_n = (n + \tfrac{1}{2})\omega_c$, with $\omega_c = \sqrt{A/m\lambda^2}$ the oscillator frequency. In the large A limit, the states in the different minima are completely isolated so that the energy bands are flat with vanishing (group) velocity $d E_n(k)/d k=0$ of propagation.
 
-We can quickly check how continuous bands in the wire become discrete evenly spaced bands as we increase $A$:
+We can numerically check how continuous bands in the wire become discrete evenly spaced bands as we increase $A$:
 
 
 ```python
@@ -212,9 +212,9 @@ kwargs = {'ylims': [-0.2, 1.3],
 holoviews.HoloMap({p.A: spectrum(syst, p, **kwargs) for p.A in np.linspace(0, 0.8, 10)}, kdims=[r'$A$'])
 ```
 
-So unless $\mu = E_n$ for some $n$, each minimum of the potential contains an integer number of electrons $N$.
+So unless $\mu = E_n$ for some $n$, each minimum of the potential contains an integer number of electrons $N$.There are a large number of states at this energy and almost no states at $\mu$ away from $E_n$.
 
-Electron wave functions from neighboring potential minima do not overlap, so when we change the potential by one time period, we move exactly $N$ electrons.
+Since electrons do not move between neighboring potential minima, so when we change the potential by one time period, we move exactly $N$ electrons.
 
 
 ```python
@@ -234,81 +234,43 @@ MoocMultipleChoiceAssessment(question=question, answers=answers, correct_answer=
 
 As we already learned, integers are important, and they could indicate that something topological is happening.
 
-At this point we should ask ourselves these questions: Is the number of electrons $N$ pumped per cycle topological, or can we pump any continuous amount of charge? How important is it that the potential well of the pump is deep?
+At this point we should ask ourselves these questions: Is the discreteness of the number of electrons $N$ pumped per cycle limited to the deep potential limit, or is the discreteness a more general consequence of topology? 
 
 ### Thought experiment
 
-To simplify the counting let's "dry out" the pump: We can define a procedure that empties the middle region, and pushes $n_L$ extra electrons to the left and $n_R$ electrons to the right.
+Let us consider the reservoirs to be closed finite (but large) boxes. When the potential in the wire is shifted the electrons clearly move from the left to the right reservoir. How do the reservoirs accomodate these electrons?
 
-For example, we can do this:
+Since the Hamiltonian is periodic in time, the Hamiltonian together with all its eigenstates return to the initial values at the end of the period. The adiabatic theorem guarantees that when the Hamiltonian changes slowly the eigenstates can evolve to an eigenstate that is adjacent in energy. 
+
+As we see in the figure below states in the left reservoir move down in energy and states in the right reservoir move up: 
 
 
 ```python
-# Same plot as above, but now with an extra rectangular barrier in the
-# middle, and with arrows both ways showing that the barrier widens.
-
-# Plot of the potential in the pumping system as a function of coordinate.
-# Some part of the leads is shown with a constant potential.
-# Regions with E < 0 should be shaded to emulate Fermi sea.
-
-# Plot of the potential in the pumping system as a function of coordinate.
-# Some part of the leads is shown with a constant potential.
-# Regions with E < 0 should be shaded to emulate Fermi sea.
-A = 0.6
-L = 10
-lamb = (10 / 5.3) / (2 * np.pi)
-mu = -0.4
-mu_lead = -0.8
-a = 4.5
-b = 6.5
-top = 1.2
-
-
-def f(x):
-    if x < 0.0:
-        return mu_lead
-    if x >= 0.0 and x <= a:
-        return mu + A * (1.0 - np.cos(x / lamb))
-    if x > a and x < b:
-        return top
-    if x >= b and x <= L:
-        return mu + A * (1.0 - np.cos(x / lamb))
-    if x > L:
-        return mu_lead
-
-
-x = np.linspace(-5, 15, 1000)
-y = [f(i) for i in x]
-
-plt.figure(figsize=(6, 4))
-plt.plot(x, y, 'k', lw=1.2)
-plt.xlim(-2.5, 12.5)
-plt.ylim(-2, 2)
-y = [i if i <= 0 else 0 for i in y]
-plt.fill_between(x, y, 0, color='r', where=np.array(y) <
-                 0.0, alpha=0.5, edgecolor='k', lw='1.5')
-plt.arrow(a, 1.05, -1, 0, head_width=0.1, head_length=0.4, fc='k', ec='k')
-plt.arrow(b, 1.05, +1, 0, head_width=0.1, head_length=0.4, fc='k', ec='k')
-plt.xlabel('$x$')
-plt.ylabel('$U(x)$')
-plt.xticks([])
-plt.yticks([])
-plt.show()
+p = SimpleNamespace(t=1, mu=0.0, mu_lead=0, A=0.1, omega=0.3, phase=None)
+syst = modulated_wire(L=110, dL=40).finalized()
+phases = np.linspace(0, 2*np.pi, 251)
+en = [np.linalg.eigvals(syst.hamiltonian_submatrix(args=[p])) for p.phase in phases]
+en = np.array(en)
+coord = kwant.operator.Density(syst, onsite=(lambda site, p: site.pos[0]))
+ticks = {'xticks': [0, 1], 'yticks': [0, 0.5, 1]}
+kdims = [r'$t/T$', r'$E$']
+holoviews.Path((phases / (2*np.pi), en), kdims=kdims)[:, 0:.4](plot=ticks)
 ```
 
-A reverse of this procedure does the reverse of course, so it reduces the number of charges on the left and right sides.
+While dynamics in the relatively flat dense mess of states (from the wire) is complicated, the situation in the energy gaps (i.e. ranges with few states) is clearer. States in the gap belong to either one reservoir or the other. States in the left reservoir turn out to move down in energy and ones in the right reservoir move up in energy (right now this is numerical - we will see why later ). 
 
-Now here comes the trick:
+Let us imagine we park our Fermi energy (i.e. the energy that separates completely occupied and completely empty states) in the gap where there are few states.
 
-1. When the middle region is emptied, the two sides are completely disconnected, and so the number of electrons on either side must be integer for every eigenstate of the Hamiltonian.
+With time, an empty level in the left reservoir moves from above the Fermi level to a state below the Fermi level. The occupation of this state cannot  change in this process because of the adiabatic theorem. Therefore after the pumping cycle is over the left reservoir has an empty state below the Fermi level i.e. one less electron. The reverse process happens in the right lead so that it has one extra electron.
 
-2. Next, if we performed the manipulation adiabatically, then if we start in an eigenstate of the Hamiltonian, we will also end in an eigenstate of the Hamiltonian. This is a consequence of the adiabatic theorem.
+So the electron that was transferred in the wire from the left reservoir to the right came from emptying the highest energy occupied state one the left and occupying the lowest energy unoccupied state on the right.
 
-3. In light of 1. and 2., we conclude that in the process of drying the middle out, we pumped an integer number of charges.
+More generally, while levels do not have to move as shown in the figure, the energy level structure of the periodic in time Hamiltonian has to return to itself. The number (possibly negative) of levels in the left reservoir that crossed from being above the Fermi level to below  must exactly be the change in charge of the left reservoir. This is an INTEGER. 
 
-4. Finally, adiabatic manipulation is only possible if the Hamiltonian stays gapped at all times.
+Therefore, our thoughts about "where the electrons came from" leads us to an interesting conclusion: The number of charges pumped in an adiabatic pumping cycle (independent of the strength $A$) is an integer (possibly $0$).
 
-Bonus: In our argument we didn't use the shape or the strength of the potential, so it applies universally to any possible pump.
+Furthermore, it is an integer as long as the wire is gapped at the chosen Fermi level ( so as to isolate the reservoirs).
+
 
 So without doing any calculations, we can conclude that:
 
@@ -321,23 +283,27 @@ The expression for the pumped charge in terms of the bulk Hamiltonian $H(k, t)$ 
 
 It's an integral over both $k$ and $t$, called a **Chern number** or in other sources a TKNN integer. Its complexity is beyond the scope of our course, but is extremely important, so we will have to study it... next week.
 
-There is a much simpler way to calculate the same quantity using scattering formalism. From the previous two weeks, recall that we may infer the presence or absence of Majoranas at an end of a system by calculating either $Q = \textrm{sign}[\textrm{Pf}\,H(0)\,\textrm{Pf}\,H(\pi)]$ or $Q=\textrm{sign}\det r$, where $r$ is the reflection matrix from one end of the Majorana wire.
+There is a much simpler way to calculate the same quantity using scattering formalism. This follows from returning to understanding how energy levels in the reservoir move as a function of time.
 
-In order to derive the scattering expression, we need to understand how the pumped charge manifests in the reflection matrix.
-
-Let's start from the case when there's just one mode in the reservoir. We'll count the charge pumped by making the reservoir finite but very large.
-
-Now all the levels in the reservoir are quantized, and are standing waves, so they are equal weight superpositions of waves going to the left $\psi_L$ and to the right $\psi_R$,
+Consider levels in the energy gap of the wire so that the levels near the Fermi energy are confined to the reservoir. Now all the levels in the reservoir are quantized, and are standing waves, so they are equal weight superpositions of waves going to the left $\psi_L$ and to the right $\psi_R$,
 
 $$
 \psi_n = \psi_L(x) + \psi_R(x) \propto \exp(ik_n x) + \exp(-ik_n x + i\phi),
 $$
 
-where the wave number $k_n$ is of course a function of energy. The relative phase shift $\phi$ is necessary to satisfy the boundary condition at $x=0$, where $\psi_L = r \psi_R$, and so $\exp(i \phi) = r$. The energies of the levels are determined by requiring that the phases of $\psi_L$ and $\psi_R$ also match at $x = -L$.
+where the wave number $k_n$ is of course a function of energy. The relative phase shift $\phi$ is necessary to satisfy the boundary condition at $x=0$, where $\psi_L = r \psi_R$, and so $\exp(i \phi) = r$. The energies of the levels are determined by requiring that the phases of $\psi_L$ and $\psi_R$ also match at $x = -L$. These boundary conditions lead to the relation 
 
-Now, what happens when we pump one extra charge into the reservoir? All the energy levels are shifted up by one, that is $E_n \rightarrow E_{n+1}$, and accordingly the wave functions also change $\psi_n \rightarrow \psi_{n+1}$.
+$$
+2 k_n L = 2n \pi +\phi.
+$$
 
-> We conclude that the charge can only be pumped as the reflection phase $\phi$ advances by $2\pi$.
+Changing the phase continuously in time $t$ by $2\pi$ evolves $k_n$ from $(2 L)^{-1}[2n\pi+\phi]$ to $(2L)^{-1}[2n\pi+2\pi+\phi]=2k_{n+1}L$. This means that the change in phase $\phi$ results in the state with index $n$ evolving 
+into an index  $n+1$.
+Thus, the winding of phase $\phi$ by $2\pi$ also changes the wave-function $\psi_n \rightarrow \psi_{n+1}$.
+
+As discussed in the previous paragraph, such a movement of energy level in the reservoir is associated with transfer of charge between the reservoir through the wire.
+
+> We conclude that if the reflection phase $\phi$ from the wire advances by $2\pi$, this corresponds to a unit charge pumped across the wire.
 
 It's very easy to generalize our argument to many modes. For that we just need to sum all of the reflection phase shifts, which means we need to look at the phase of $\det r$.
 
@@ -347,13 +313,13 @@ $$
 dq = \frac{d \log \det r}{2\pi i} = \operatorname{Tr}\frac{r^\dagger dr }{ 2 \pi i}.
 $$
 
-While we derived this relation only for the case when all incoming particles reflect, and $r$ is unitary, written in form of trace it also holds if there is transmission.[¹](https://arxiv.org/abs/cond-mat/9808347)
+While we derived this relation only for the case when all incoming particles reflect, and $r$ is unitary, written in form of trace it also has physical implications even if there is transmission.[¹](https://arxiv.org/abs/cond-mat/9808347)
 
 Let's check if this expression holds to our expectations. If $||r||=1$, this is just the number of times the phase of $\det r$ winds around zero, and it is certainly an integer, as we expected.
 
-# Applying the topological invariant
+This provides an independent argument (in addition to the movement of energy levels from the last section ) for why the pumped charge is quantized as long as the gap is preserved.
 
-We're left with a simple exercise.
+# Applying the topological invariant
 
 We know now how to calculate the pumped charge during one cycle, so let's just see how it works in practice.
 
@@ -393,28 +359,6 @@ spectrum(syst, p, **kwargs) * HLines + holoviews.Overlay([plot_charge(mu) for mu
 ```
 
 In the left plot, we show the band structure, where the different colors correspond to different chemical potentials. The right plot shows the corresponding pumped charge. During the pumping cycle the charge may change, and the relation between the offset $\phi$ of the potential isn't always linear. However we see that after a full cycle, the pumped charge exactly matches the number of filled levels in a single potential well.
-
-As a final mental exercise about pumps, let's think about what happens if we disconnect the leads and consider the spectrum of a closed system.
-
-As the periodic potential moves, it tries to increase the energies of all the states at the right of the system and reduce the energy of all the states to the left (that's what pumping does after all).
-
-So there should be states crossing the bulk band gap. Let's see if it's true.
-
-
-```python
-p = SimpleNamespace(t=1, mu=0.0, mu_lead=0, A=0.6, omega=0.3, phase=None)
-syst = modulated_wire(L=110).finalized()
-phases = np.linspace(0, 2*np.pi, 251)
-en = [np.linalg.eigvalsh(syst.hamiltonian_submatrix(args=[p])) for p.phase in phases]
-en = np.array(en)
-ticks = {'xticks': [0, 1], 'yticks': [0, 0.5, 1]}
-kdims = [r'$t/T$', r'$E$']
-holoviews.Path((phases / (2*np.pi), en), kdims=kdims)[:, 0:1.2](plot=ticks)
-```
-
-Indeed, the levels in the bulk stay flat and have a high degeneracy, but we see that there are also single levels that get pushed across the gap. Since the bulk is homogeneous, these states have to be localized at the edge.
-
-Of course, since we have a finite system, the charge cannot be pumped forever from one end into the other. So the pumping breaks down when you see the edge states crossing the bulk bands. At these moments the charge can flow back through the bulk.
 
 
 ```python
